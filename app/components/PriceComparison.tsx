@@ -205,11 +205,11 @@ export default function PriceComparison() {
         if (productCount >= 2) {
           const group: ComparisonGroup = {
             productName: normalizedName,
-            imtiazPrice: imtiazProduct?.price > 0 ? imtiazProduct.price : undefined,
+            imtiazPrice: imtiazProduct && imtiazProduct.price > 0 ? imtiazProduct.price : undefined,
             imtiazProduct: imtiazProduct,
-            chaseupPrice: chaseupProduct?.price > 0 ? chaseupProduct.price : undefined,
+            chaseupPrice: chaseupProduct && chaseupProduct.price > 0 ? chaseupProduct.price : undefined,
             chaseupProduct: chaseupProduct,
-            metroPrice: metroProduct?.price > 0 ? metroProduct.price : undefined,
+            metroPrice: metroProduct && metroProduct.price > 0 ? metroProduct.price : undefined,
             metroProduct: metroProduct,
           }
 
