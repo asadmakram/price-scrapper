@@ -133,6 +133,59 @@ const mockChaseupProducts: Product[] = [
   },
 ]
 
+const mockMetroProducts: Product[] = [
+  {
+    id: 'metro-1',
+    name: 'Pepsi Soft Drink Pet Bottle 2.25Ltr',
+    price: 775,
+    website: 'Metro Online',
+    image: 'https://via.placeholder.com/200',
+    url: 'https://www.metro-online.pk/product/1',
+    inStock: true,
+    rating: 4.5,
+  },
+  {
+    id: 'metro-2',
+    name: 'Coca Cola Soft Drink Pet Bottle 2.25Ltr',
+    price: 775,
+    website: 'Metro Online',
+    image: 'https://via.placeholder.com/200',
+    url: 'https://www.metro-online.pk/product/2',
+    inStock: true,
+    rating: 4.6,
+  },
+  {
+    id: 'metro-3',
+    name: 'Sprite Lemon Lime 1.5L',
+    price: 455,
+    website: 'Metro Online',
+    image: 'https://via.placeholder.com/200',
+    url: 'https://www.metro-online.pk/product/3',
+    inStock: true,
+    rating: 4.4,
+  },
+  {
+    id: 'metro-4',
+    name: 'Evian Drinking Water 1.5L',
+    price: 205,
+    website: 'Metro Online',
+    image: 'https://via.placeholder.com/200',
+    url: 'https://www.metro-online.pk/product/4',
+    inStock: true,
+    rating: 4.5,
+  },
+  {
+    id: 'metro-5',
+    name: 'Desi Ghee 1KG',
+    price: 1875,
+    website: 'Metro Online',
+    image: 'https://via.placeholder.com/200',
+    url: 'https://www.metro-online.pk/product/5',
+    inStock: true,
+    rating: 4.7,
+  },
+]
+
 // Imtiaz API - uses same platform as Chase Up
 async function fetchImtiazProducts(searchQuery?: string): Promise<Product[]> {
   try {
@@ -252,6 +305,83 @@ async function fetchChaseUpProducts(searchQuery?: string): Promise<Product[]> {
   }
 }
 
+// Metro Online API
+interface MetroProduct {
+  id: number
+  name: string
+  price: number
+  image?: string
+  url?: string
+  inStock?: boolean
+}
+
+async function fetchMetroProducts(searchQuery?: string): Promise<Product[]> {
+  try {
+    // Build the URL with filters based on the curl command provided
+    // Note: Metro API uses multiple filter/filterValue pairs, so we need to build URL manually
+    const baseUrl = 'https://admin.metro-online.pk/api/read/Products'
+    const params: string[] = [
+      'type=Products_nd_associated_Brands',
+      'order=product_scoring__DESC',
+      'filter=promotion_tier2_id',
+      'filterValue=10636',
+      'offset=0',
+      'limit=12',
+      'filter=active',
+      'filterValue=true',
+      'filter=storeId',
+      'filterValue=10',
+      'filter=!url',
+      'filterValue=!null',
+      'filter=Op.available_stock',
+      'filterValue=Op.gt__0',
+    ]
+
+    // Add search query if provided
+    if (searchQuery) {
+      params.push(`filter=name`)
+      params.push(`filterValue=Op.like__${encodeURIComponent(searchQuery)}`)
+    }
+
+    const url = `${baseUrl}?${params.join('&')}`
+
+    const response = await axios.get(url, {
+      headers: {
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en-US,en;q=0.9,la;q=0.8',
+        'cache-control': 'no-cache',
+        'origin': 'https://www.metro-online.pk',
+        'pragma': 'no-cache',
+        'referer': 'https://www.metro-online.pk/',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+      },
+      timeout: 10000,
+    })
+
+    const products = response.data?.data || []
+
+    return products.map((product: any) => {
+      const price = parseFloat(product.price) || parseFloat(product.sale_price) || 0
+      const image = product.image_url || product.img_url || product.image
+      const productUrl = product.url || `https://www.metro-online.pk/product/${product.id}`
+
+      return {
+        id: `metro-${product.id}`,
+        name: product.name || product.product_name || 'Unknown Product',
+        price,
+        website: 'Metro Online',
+        image,
+        url: productUrl,
+        inStock: product.available_stock > 0 || product.in_stock === true,
+        rating: 4.5,
+      }
+    })
+  } catch (error) {
+    console.error('Failed to fetch from Metro API:', error)
+    return mockMetroProducts
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -268,6 +398,11 @@ export async function GET(request: NextRequest) {
     if (source === 'chaseup' || source === 'all') {
       const chaseupProducts = await fetchChaseUpProducts(query)
       products = [...products, ...chaseupProducts]
+    }
+
+    if (source === 'metro' || source === 'all') {
+      const metroProducts = await fetchMetroProducts(query)
+      products = [...products, ...metroProducts]
     }
 
     return NextResponse.json({

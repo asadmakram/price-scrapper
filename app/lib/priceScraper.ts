@@ -53,7 +53,26 @@ const fallbackChaseupProducts: Product[] = [
   },
 ]
 
-async function fetchFromAPI(source: 'imtiaz' | 'chaseup' | 'all', searchQuery?: string): Promise<Product[]> {
+const fallbackMetroProducts: Product[] = [
+  {
+    id: 'metro-1',
+    name: 'Pepsi Soft Drink Pet Bottle 2.25Ltr',
+    price: 775,
+    website: 'Metro Online',
+    inStock: true,
+    rating: 4.3,
+  },
+  {
+    id: 'metro-2',
+    name: 'Milk 1L (Fresh)',
+    price: 195,
+    website: 'Metro Online',
+    inStock: true,
+    rating: 4.1,
+  },
+]
+
+async function fetchFromAPI(source: 'imtiaz' | 'chaseup' | 'metro' | 'all', searchQuery?: string): Promise<Product[]> {
   try {
     const params = new URLSearchParams()
     params.append('source', source)
@@ -115,14 +134,34 @@ export async function fetchChaseupPrices(searchQuery?: string): Promise<Product[
   return fallbackChaseupProducts
 }
 
+export async function fetchMetroPrices(searchQuery?: string): Promise<Product[]> {
+  // Try to fetch from local API route first (which handles server-side requests)
+  const realProducts = await fetchFromAPI('metro', searchQuery)
+
+  // If we got real products, return them
+  if (realProducts.length > 0) {
+    return realProducts
+  }
+
+  // Fallback to mock data
+  console.warn('Falling back to mock Metro data')
+  if (searchQuery) {
+    return fallbackMetroProducts.filter((p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }
+  return fallbackMetroProducts
+}
+
 export async function fetchAllPrices(searchQuery?: string): Promise<Product[]> {
-  // Try to fetch from both websites
-  const [imtiazData, chaseupData] = await Promise.all([
+  // Try to fetch from all websites
+  const [imtiazData, chaseupData, metroData] = await Promise.all([
     fetchImtiazPrices(searchQuery),
     fetchChaseupPrices(searchQuery),
+    fetchMetroPrices(searchQuery),
   ])
 
-  return [...imtiazData, ...chaseupData]
+  return [...imtiazData, ...chaseupData, ...metroData]
 }
 
 export async function calculatePriceDifference(
